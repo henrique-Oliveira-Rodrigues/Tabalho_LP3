@@ -1,13 +1,22 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'screens/splash_screen.dart';
-import 'screens/login_screen.dart';
-import 'screens/cadastro_screen.dart';
-import 'screens/app_layout.dart';
-import 'screens/filtros_screen.dart';
-import 'screens/evento_detalhe_screen.dart';
-import 'screens/cadastro_evento_screen.dart';
 
-void main() {
+import 'Autenticacao.dart';
+import 'CriarEvento.dart';
+import 'cadastro.dart';
+import 'detalhes.dart';
+import 'filtros.dart';
+import 'firebase_options.dart';
+import 'lista.dart';
+import 'login.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
   runApp(const AgendaLocalApp());
 }
 
@@ -26,7 +35,6 @@ class AgendaLocalApp extends StatelessWidget {
           secondary: Colors.black,
         ),
         scaffoldBackgroundColor: Colors.white,
-        fontFamily: 'Roboto',
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: Colors.white,
@@ -53,23 +61,31 @@ class AgendaLocalApp extends StatelessWidget {
             textStyle: const TextStyle(fontWeight: FontWeight.bold),
           ),
         ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.black,
+            minimumSize: const Size.fromHeight(50),
+            side: const BorderSide(color: Colors.black, width: 2),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            textStyle: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
       ),
       initialRoute: '/',
       routes: {
-        '/': (_) => const SplashScreen(),
-        '/login': (_) => const LoginScreen(),
-        '/cadastro': (_) => const CadastroScreen(),
-        '/home': (_) => const AppLayout(initialIndex: 0),
-        '/eventos': (_) => const AppLayout(initialIndex: 1),
-        '/favoritos': (_) => const AppLayout(initialIndex: 2),
-        '/perfil': (_) => const AppLayout(initialIndex: 3),
-        '/filtros': (_) => const FiltrosScreen(),
-        '/novo-evento': (_) => const CadastroEventoScreen(),
+        '/': (_) => const AuthGate(),
+        '/login': (_) => const LoginPage(),
+        '/cadastro': (_) => const CadastroPage(),
+        '/lista': (_) => const ListaEventosPage(),
+        '/novo-evento': (_) => const CriarEventoPage(),
+        '/filtros': (_) => const FiltrosPage(),
       },
       onGenerateRoute: (settings) {
         if (settings.name != null && settings.name!.startsWith('/evento/')) {
           final id = settings.name!.split('/').last;
-          return MaterialPageRoute(builder: (_) => EventoDetalheScreen(eventoId: id));
+          return MaterialPageRoute(
+            builder: (_) => DetalhesEventoPage(eventoId: id),
+          );
         }
         return null;
       },

@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
 
 class LoginScreen extends StatelessWidget {
-  const LoginScreen({super.key});
+  TextEditingController txtEmail = TextEditingController();
+  TextEditingController txtSenha = TextEditingController();
+
+  LoginScreen({super.key});
+
+  Future login(BuildContext context) async {
+    await 
+  }
 
   @override
   Widget build(BuildContext context) {
