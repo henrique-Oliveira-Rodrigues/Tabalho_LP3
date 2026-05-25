@@ -7,7 +7,7 @@ class LoginScreen extends StatelessWidget {
   LoginScreen({super.key});
 
   Future login(BuildContext context) async {
-    await 
+    await
   }
 
   @override
