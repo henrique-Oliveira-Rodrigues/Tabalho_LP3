@@ -1,8 +1,12 @@
+<<<<<<< HEAD
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../models/evento.dart';
 import '../services/evento_service.dart';
+=======
+import 'package:flutter/material.dart';
+>>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
 import '../widgets/ios_toggle.dart';
 
 class CadastroEventoScreen extends StatefulWidget {
@@ -13,6 +17,7 @@ class CadastroEventoScreen extends StatefulWidget {
 }
 
 class _CadastroEventoScreenState extends State<CadastroEventoScreen> {
+<<<<<<< HEAD
   final EventoService eventoService = EventoService();
 
   final tituloController = TextEditingController();
@@ -107,11 +112,16 @@ class _CadastroEventoScreenState extends State<CadastroEventoScreen> {
       }
     }
   }
+=======
+  bool gratuito = false;
+  bool inscricoesAbertas = true;
+>>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+<<<<<<< HEAD
         title: const Text(
           'Novo Evento',
           style: TextStyle(fontWeight: FontWeight.bold),
@@ -120,6 +130,10 @@ class _CadastroEventoScreenState extends State<CadastroEventoScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: carregando ? null : () => Navigator.pop(context),
         ),
+=======
+        title: const Text('Novo Evento', style: TextStyle(fontWeight: FontWeight.bold)),
+        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)),
+>>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
       ),
       body: SafeArea(
         child: Center(
@@ -129,6 +143,7 @@ class _CadastroEventoScreenState extends State<CadastroEventoScreen> {
               padding: const EdgeInsets.all(24),
               child: Column(
                 children: [
+<<<<<<< HEAD
                   _Field(
                     controller: tituloController,
                     label: 'Título do Evento *',
@@ -189,6 +204,23 @@ class _CadastroEventoScreenState extends State<CadastroEventoScreen> {
                     hint: 'URL da imagem, opcional',
                     keyboardType: TextInputType.url,
                   ),
+=======
+                  const _Field(label: 'Título do Evento', hint: 'Ex: Workshop de Fotografia'),
+                  const SizedBox(height: 18),
+                  const _Field(label: 'Descrição', hint: 'Conte mais sobre o evento...', maxLines: 4),
+                  const SizedBox(height: 18),
+                  const Row(
+                    children: [
+                      Expanded(child: _Field(label: 'Data', hint: 'dd/mm/aaaa')),
+                      SizedBox(width: 14),
+                      Expanded(child: _Field(label: 'Horário', hint: '00:00')),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+                  const _Field(label: 'Local', hint: 'Ex: Praça Central'),
+                  const SizedBox(height: 18),
+                  const _Field(label: 'Link de Inscrição', hint: 'https://...', keyboardType: TextInputType.url),
+>>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
                   const SizedBox(height: 24),
                   Divider(color: Colors.grey.shade300),
                   const SizedBox(height: 18),
@@ -207,8 +239,13 @@ class _CadastroEventoScreenState extends State<CadastroEventoScreen> {
                   ),
                   const SizedBox(height: 34),
                   ElevatedButton(
+<<<<<<< HEAD
                     onPressed: carregando ? null : salvarEvento,
                     child: Text(carregando ? 'Salvando...' : 'Salvar'),
+=======
+                    onPressed: () => Navigator.pushNamedAndRemoveUntil(context, '/home', (_) => false),
+                    child: const Text('Salvar'),
+>>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
                   ),
                 ],
               ),
@@ -221,12 +258,16 @@ class _CadastroEventoScreenState extends State<CadastroEventoScreen> {
 }
 
 class _Field extends StatelessWidget {
+<<<<<<< HEAD
   final TextEditingController controller;
+=======
+>>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
   final String label;
   final String hint;
   final int maxLines;
   final TextInputType? keyboardType;
 
+<<<<<<< HEAD
   const _Field({
     required this.controller,
     required this.label,
@@ -234,6 +275,9 @@ class _Field extends StatelessWidget {
     this.maxLines = 1,
     this.keyboardType,
   });
+=======
+  const _Field({required this.label, required this.hint, this.maxLines = 1, this.keyboardType});
+>>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
 
   @override
   Widget build(BuildContext context) {
@@ -242,12 +286,16 @@ class _Field extends StatelessWidget {
       children: [
         Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
         const SizedBox(height: 6),
+<<<<<<< HEAD
         TextField(
           controller: controller,
           maxLines: maxLines,
           keyboardType: keyboardType,
           decoration: InputDecoration(hintText: hint),
         ),
+=======
+        TextField(maxLines: maxLines, keyboardType: keyboardType, decoration: InputDecoration(hintText: hint)),
+>>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
       ],
     );
   }
@@ -259,12 +307,16 @@ class _ToggleLine extends StatelessWidget {
   final bool value;
   final ValueChanged<bool> onChanged;
 
+<<<<<<< HEAD
   const _ToggleLine({
     required this.title,
     required this.subtitle,
     required this.value,
     required this.onChanged,
   });
+=======
+  const _ToggleLine({required this.title, required this.subtitle, required this.value, required this.onChanged});
+>>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
 
   @override
   Widget build(BuildContext context) {
@@ -275,10 +327,14 @@ class _ToggleLine extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+<<<<<<< HEAD
               Text(
                 title,
                 style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
               ),
+=======
+              Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+>>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
               const SizedBox(height: 4),
               Text(subtitle, style: TextStyle(color: Colors.grey.shade600)),
             ],

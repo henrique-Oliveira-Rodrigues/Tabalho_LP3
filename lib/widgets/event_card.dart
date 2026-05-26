@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
 
+=======
+>>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
 import '../models/evento.dart';
 
 class EventCard extends StatelessWidget {
@@ -33,14 +36,18 @@ class EventCard extends StatelessWidget {
               height: 160,
               width: double.infinity,
               child: ColorFiltered(
+<<<<<<< HEAD
                 // Matriz para deixar a imagem com aparência monocromática,
                 // mantendo a identidade visual preto/branco do protótipo.
+=======
+>>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
                 colorFilter: const ColorFilter.matrix(<double>[
                   0.2126, 0.7152, 0.0722, 0, 0,
                   0.2126, 0.7152, 0.0722, 0, 0,
                   0.2126, 0.7152, 0.0722, 0, 0,
                   0, 0, 0, 0.85, 0,
                 ]),
+<<<<<<< HEAD
                 child: evento.imagemUrl.isEmpty
                     ? Container(
                         color: Colors.grey.shade200,
@@ -54,6 +61,16 @@ class EventCard extends StatelessWidget {
                           child: const Icon(Icons.image_not_supported_outlined),
                         ),
                       ),
+=======
+                child: Image.network(
+                  evento.imagemUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    color: Colors.grey.shade200,
+                    child: const Icon(Icons.image_not_supported_outlined),
+                  ),
+                ),
+>>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
               ),
             ),
             Padding(
@@ -66,6 +83,7 @@ class EventCard extends StatelessWidget {
                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 10),
+<<<<<<< HEAD
                   _InfoLine(
                     icon: Icons.calendar_month_outlined,
                     text: '${evento.data} • ${evento.horario}',
@@ -75,14 +93,23 @@ class EventCard extends StatelessWidget {
                     icon: Icons.location_on_outlined,
                     text: '${evento.local} - ${evento.bairro}',
                   ),
+=======
+                  _InfoLine(icon: Icons.calendar_month_outlined, text: evento.data),
+                  const SizedBox(height: 6),
+                  _InfoLine(icon: Icons.location_on_outlined, text: evento.local),
+>>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
                   const SizedBox(height: 14),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: [
                       if (evento.gratuito) const _Tag(text: 'Gratuito', outlined: true),
+<<<<<<< HEAD
                       if (evento.inscricoesAbertas)
                         const _Tag(text: 'Inscrições abertas', outlined: false),
+=======
+                      if (evento.inscricoesAbertas) const _Tag(text: 'Inscrições abertas', outlined: false),
+>>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
                     ],
                   ),
                 ],
@@ -108,10 +135,14 @@ class _InfoLine extends StatelessWidget {
         Icon(icon, size: 16, color: Colors.grey.shade700),
         const SizedBox(width: 8),
         Expanded(
+<<<<<<< HEAD
           child: Text(
             text,
             style: TextStyle(color: Colors.grey.shade700, fontSize: 14),
           ),
+=======
+          child: Text(text, style: TextStyle(color: Colors.grey.shade700, fontSize: 14)),
+>>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
         ),
       ],
     );

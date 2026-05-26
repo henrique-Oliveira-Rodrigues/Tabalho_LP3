@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -110,6 +111,19 @@ class _CadastroScreenState extends State<CadastroScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
+=======
+import 'package:flutter/material.dart';
+
+class CadastroScreen extends StatelessWidget {
+  const CadastroScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Criar conta', style: TextStyle(fontWeight: FontWeight.bold)),
+        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)),
+>>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
       ),
       body: SafeArea(
         child: Center(
@@ -120,6 +134,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+<<<<<<< HEAD
                   Text(
                     'Preencha seus dados para começar a explorar eventos na sua região.',
                     style: TextStyle(color: Colors.grey.shade600),
@@ -167,6 +182,21 @@ class _CadastroScreenState extends State<CadastroScreen> {
                   ElevatedButton(
                     onPressed: carregando ? null : criarConta,
                     child: Text(carregando ? 'Cadastrando...' : 'Cadastrar'),
+=======
+                  Text('Preencha seus dados para começar a explorar eventos na sua região.', style: TextStyle(color: Colors.grey.shade600)),
+                  const SizedBox(height: 32),
+                  const _FormField(label: 'Nome', hint: 'Seu nome completo'),
+                  const SizedBox(height: 18),
+                  const _FormField(label: 'Email', hint: 'seu@email.com', keyboardType: TextInputType.emailAddress),
+                  const SizedBox(height: 18),
+                  const _FormField(label: 'Senha', hint: '••••••••', obscure: true),
+                  const SizedBox(height: 18),
+                  const _FormField(label: 'Confirmar senha', hint: '••••••••', obscure: true),
+                  const SizedBox(height: 40),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pushReplacementNamed(context, '/login'),
+                    child: const Text('Cadastrar'),
+>>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
                   ),
                 ],
               ),
@@ -179,12 +209,16 @@ class _CadastroScreenState extends State<CadastroScreen> {
 }
 
 class _FormField extends StatelessWidget {
+<<<<<<< HEAD
   final TextEditingController controller;
+=======
+>>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
   final String label;
   final String hint;
   final bool obscure;
   final TextInputType? keyboardType;
 
+<<<<<<< HEAD
   const _FormField({
     required this.controller,
     required this.label,
@@ -192,6 +226,9 @@ class _FormField extends StatelessWidget {
     this.obscure = false,
     this.keyboardType,
   });
+=======
+  const _FormField({required this.label, required this.hint, this.obscure = false, this.keyboardType});
+>>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
 
   @override
   Widget build(BuildContext context) {
@@ -200,12 +237,16 @@ class _FormField extends StatelessWidget {
       children: [
         Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
         const SizedBox(height: 6),
+<<<<<<< HEAD
         TextField(
           controller: controller,
           obscureText: obscure,
           keyboardType: keyboardType,
           decoration: InputDecoration(hintText: hint),
         ),
+=======
+        TextField(obscureText: obscure, keyboardType: keyboardType, decoration: InputDecoration(hintText: hint)),
+>>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
       ],
     );
   }

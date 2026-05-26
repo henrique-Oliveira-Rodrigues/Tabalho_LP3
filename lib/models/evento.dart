@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Evento {
@@ -14,10 +15,21 @@ class Evento {
   final bool inscricoesAbertas;
   final String criadoPor;
   final DateTime? criadoEm;
+=======
+class Evento {
+  final String id;
+  final String titulo;
+  final String data;
+  final String local;
+  final String imagemUrl;
+  final bool gratuito;
+  final bool inscricoesAbertas;
+>>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
 
   const Evento({
     required this.id,
     required this.titulo,
+<<<<<<< HEAD
     required this.descricao,
     required this.data,
     required this.horario,
@@ -73,4 +85,12 @@ class Evento {
       'criadoEm': FieldValue.serverTimestamp(),
     };
   }
+=======
+    required this.data,
+    required this.local,
+    required this.imagemUrl,
+    required this.gratuito,
+    required this.inscricoesAbertas,
+  });
+>>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
 }

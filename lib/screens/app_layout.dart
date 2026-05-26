@@ -1,11 +1,18 @@
+<<<<<<< HEAD
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+=======
+import 'package:flutter/material.dart';
+>>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
 import 'home_screen.dart';
 
 class AppLayout extends StatefulWidget {
   final int initialIndex;
+<<<<<<< HEAD
 
+=======
+>>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
   const AppLayout({super.key, this.initialIndex = 0});
 
   @override
@@ -21,6 +28,7 @@ class _AppLayoutState extends State<AppLayout> {
     _index = widget.initialIndex;
   }
 
+<<<<<<< HEAD
   Future<void> sair() async {
     // Encerra a sessão no Firebase Auth.
     await FirebaseAuth.instance.signOut();
@@ -49,6 +57,15 @@ class _AppLayoutState extends State<AppLayout> {
         nome: usuario?.displayName ?? 'Usuário',
         onLogout: sair,
       ),
+=======
+  @override
+  Widget build(BuildContext context) {
+    final pages = [
+      const HomeScreen(),
+      const HomeScreen(title: 'Eventos'),
+      const HomeScreen(title: 'Favoritos'),
+      const HomeScreen(title: 'Perfil'),
+>>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
     ];
 
     return Scaffold(
@@ -65,6 +82,7 @@ class _AppLayoutState extends State<AppLayout> {
         unselectedItemColor: Colors.grey,
         type: BottomNavigationBarType.fixed,
         items: const [
+<<<<<<< HEAD
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
             activeIcon: Icon(Icons.home),
@@ -88,6 +106,15 @@ class _AppLayoutState extends State<AppLayout> {
         ],
       ),
       floatingActionButton: _index == 0 || _index == 1
+=======
+          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Início'),
+          BottomNavigationBarItem(icon: Icon(Icons.calendar_month_outlined), activeIcon: Icon(Icons.calendar_month), label: 'Eventos'),
+          BottomNavigationBarItem(icon: Icon(Icons.favorite_border), activeIcon: Icon(Icons.favorite), label: 'Favoritos'),
+          BottomNavigationBarItem(icon: Icon(Icons.person_outline), activeIcon: Icon(Icons.person), label: 'Perfil'),
+        ],
+      ),
+      floatingActionButton: _index == 0
+>>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
           ? FloatingActionButton(
               backgroundColor: Colors.black,
               foregroundColor: Colors.white,
@@ -98,6 +125,7 @@ class _AppLayoutState extends State<AppLayout> {
     );
   }
 }
+<<<<<<< HEAD
 
 class _PlaceholderPage extends StatelessWidget {
   final String title;
@@ -177,3 +205,5 @@ class _PerfilPage extends StatelessWidget {
     );
   }
 }
+=======
+>>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c

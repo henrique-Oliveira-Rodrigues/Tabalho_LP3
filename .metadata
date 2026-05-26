@@ -15,7 +15,11 @@ migration:
     - platform: root
       create_revision: c23637390482d4cf9598c3ce3f2be31aa7332daf
       base_revision: c23637390482d4cf9598c3ce3f2be31aa7332daf
+<<<<<<< HEAD
     - platform: windows
+=======
+    - platform: web
+>>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
       create_revision: c23637390482d4cf9598c3ce3f2be31aa7332daf
       base_revision: c23637390482d4cf9598c3ce3f2be31aa7332daf
 
