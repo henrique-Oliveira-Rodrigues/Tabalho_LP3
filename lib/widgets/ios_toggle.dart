@@ -13,10 +13,7 @@ class IosToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-<<<<<<< HEAD
-      // Ao tocar, inverte o valor atual do toggle.
-=======
->>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
+      // Ao tocar no componente, inverte o valor atual do toggle.
       onTap: () => onChanged(!value),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),

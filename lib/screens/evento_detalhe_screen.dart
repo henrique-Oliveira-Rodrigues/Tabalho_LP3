@@ -1,227 +1,436 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../models/evento.dart';
 import '../services/evento_service.dart';
 
-class EventoDetalheScreen extends StatelessWidget {
+/// Tela de detalhes do evento.
+///
+/// Esta tela aplica as regras de negócio:
+/// - o criador do evento pode editar e excluir;
+/// - cliente comum pode se inscrever e cancelar inscrição;
+/// - empresa que não criou o evento apenas visualiza;
+/// - o criador não pode se inscrever no próprio evento.
+class EventoDetalheScreen extends StatefulWidget {
   final String eventoId;
 
-  const EventoDetalheScreen({super.key, required this.eventoId});
+  const EventoDetalheScreen({
+    super.key,
+    required this.eventoId,
+  });
 
   @override
-  Widget build(BuildContext context) {
-    final eventoService = EventoService();
+  State<EventoDetalheScreen> createState() => _EventoDetalheScreenState();
+}
 
-    return FutureBuilder<Evento?>(
-      // Busca o evento real no Firestore pelo ID recebido na rota.
-      future: eventoService.buscarEventoPorId(eventoId),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
+class _EventoDetalheScreenState extends State<EventoDetalheScreen> {
+  final EventoService eventoService = EventoService();
 
-        if (snapshot.hasError) {
-          return const Scaffold(
-            body: Center(child: Text('Erro ao carregar evento.')),
-          );
-        }
+  Evento? evento;
 
-        final event = snapshot.data;
+  bool carregando = true;
+  bool processandoAcao = false;
+  bool ehEmpresa = false;
+  bool inscrito = false;
 
-        if (event == null) {
-          return Scaffold(
-            appBar: AppBar(),
-            body: const Center(child: Text('Evento não encontrado.')),
-          );
-        }
+  @override
+  void initState() {
+    super.initState();
+    carregarDados();
+  }
 
-        return Scaffold(
-          body: SafeArea(
-            top: false,
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 430),
-                child: Column(
-                  children: [
-                    Expanded(
-                      child: SingleChildScrollView(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Stack(
-                              children: [
-                                SizedBox(
-                                  height: 260,
-                                  width: double.infinity,
-                                  child: ColorFiltered(
-                                    colorFilter: const ColorFilter.matrix(<double>[
-                                      0.2126, 0.7152, 0.0722, 0, 0,
-                                      0.2126, 0.7152, 0.0722, 0, 0,
-                                      0.2126, 0.7152, 0.0722, 0, 0,
-                                      0, 0, 0, 0.9, 0,
-                                    ]),
-                                    child: event.imagemUrl.isEmpty
-                                        ? Container(
-                                            color: Colors.grey.shade200,
-                                            child: const Icon(
-                                              Icons.image_not_supported_outlined,
-                                              size: 48,
-                                            ),
-                                          )
-                                        : Image.network(
-                                            event.imagemUrl,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (_, __, ___) => Container(
-                                              color: Colors.grey.shade200,
-                                              child: const Icon(
-                                                Icons.image_not_supported_outlined,
-                                                size: 48,
-                                              ),
-                                            ),
-                                          ),
-                                  ),
-                                ),
-                                Positioned(
-                                  top: 42,
-                                  left: 16,
-                                  right: 16,
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      _CircleButton(
-                                        icon: Icons.arrow_back,
-                                        onPressed: () => Navigator.pop(context),
-                                      ),
-                                      Row(
-                                        children: [
-                                          _CircleButton(
-                                            icon: Icons.share_outlined,
-                                            onPressed: () {
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                const SnackBar(
-                                                  content: Text('Compartilhamento ainda não implementado.'),
-                                                ),
-                                              );
-                                            },
-                                          ),
-                                          const SizedBox(width: 8),
-                                          _CircleButton(
-                                            icon: Icons.favorite_border,
-                                            onPressed: () {
-                                              ScaffoldMessenger.of(context).showSnackBar(
-                                                const SnackBar(
-                                                  content: Text('Favoritos ainda não implementado.'),
-                                                ),
-                                              );
-                                            },
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.all(24),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Wrap(
-                                    spacing: 8,
-                                    children: [
-                                      if (event.gratuito)
-                                        const _SmallTag(text: 'Gratuito', outlined: true),
-                                      if (event.inscricoesAbertas)
-                                        const _SmallTag(
-                                          text: 'Inscrições abertas',
-                                          outlined: false,
-                                        ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 14),
-                                  Text(
-                                    event.titulo,
-                                    style: const TextStyle(
-                                      fontSize: 26,
-                                      fontWeight: FontWeight.bold,
-                                      height: 1.15,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 22),
-                                  _DetailLine(
-                                    icon: Icons.calendar_month_outlined,
-                                    title: 'Data e Horário',
-                                    value: '${event.data} • ${event.horario}',
-                                  ),
-                                  const SizedBox(height: 16),
-                                  _DetailLine(
-                                    icon: Icons.location_on_outlined,
-                                    title: 'Local',
-                                    value: '${event.local} - ${event.bairro}',
-                                  ),
-                                  const SizedBox(height: 24),
-                                  Divider(color: Colors.grey.shade300),
-                                  const SizedBox(height: 18),
-                                  const Text(
-                                    'Sobre o evento',
-                                    style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold),
-                                  ),
-                                  const SizedBox(height: 10),
-                                  Text(
-                                    event.descricao,
-                                    style: TextStyle(color: Colors.grey.shade700, height: 1.5),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: ElevatedButton(
-                        onPressed: event.linkInscricao.isEmpty
-                            ? null
-                            : () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Link de inscrição: ${event.linkInscricao}'),
-                                  ),
-                                );
-                              },
-                        child: const Text('Ver inscrição'),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+  /// Carrega o evento, verifica se o usuário é empresa
+  /// e verifica se o usuário atual já está inscrito.
+  Future<void> carregarDados() async {
+    setState(() => carregando = true);
+
+    try {
+      final eventoCarregado =
+          await eventoService.buscarEventoPorId(widget.eventoId);
+
+      final empresa = await eventoService.usuarioAtualEhEmpresa();
+
+      final usuario = FirebaseAuth.instance.currentUser;
+
+      bool jaInscrito = false;
+
+      if (usuario != null) {
+        jaInscrito = await eventoService.usuarioEstaInscrito(
+          eventoId: widget.eventoId,
+          usuarioId: usuario.uid,
+        );
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        evento = eventoCarregado;
+        ehEmpresa = empresa;
+        inscrito = jaInscrito;
+        carregando = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() => carregando = false);
+      mostrarMensagem('Erro ao carregar detalhes do evento.');
+    }
+  }
+
+  /// Mostra mensagens simples para erros e confirmações.
+  void mostrarMensagem(String mensagem) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(mensagem)),
+    );
+  }
+
+  /// Retorna verdadeiro quando o usuário logado é o criador do evento.
+  bool usuarioPodeGerenciar(Evento eventoAtual) {
+    final usuario = FirebaseAuth.instance.currentUser;
+    return usuario != null && usuario.uid == eventoAtual.criadoPor;
+  }
+
+  /// Abre a tela de edição e recarrega os dados ao voltar.
+  Future<void> editarEvento(Evento eventoAtual) async {
+    await Navigator.pushNamed(context, '/editar-evento/${eventoAtual.id}');
+    await carregarDados();
+  }
+
+  /// Exclui o evento após confirmação.
+  Future<void> excluirEvento(Evento eventoAtual) async {
+    final confirmou = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Excluir evento'),
+          content: const Text(
+            'Tem certeza que deseja excluir este evento? Essa ação não pode ser desfeita.',
           ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Excluir'),
+            ),
+          ],
         );
       },
     );
-  }
-}
 
-class _CircleButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onPressed;
-  const _CircleButton({required this.icon, required this.onPressed});
+    if (confirmou != true) return;
+
+    setState(() => processandoAcao = true);
+
+    try {
+      await eventoService.excluirEvento(eventoAtual.id);
+
+      if (!mounted) return;
+
+      mostrarMensagem('Evento excluído com sucesso.');
+      Navigator.pop(context);
+    } catch (e) {
+      mostrarMensagem(e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) {
+        setState(() => processandoAcao = false);
+      }
+    }
+  }
+
+  /// Inscreve o cliente no evento.
+  ///
+  /// Regra:
+  /// - usuário precisa estar logado;
+  /// - inscrições precisam estar abertas;
+  /// - criador do evento não pode se inscrever;
+  /// - empresa não deve se inscrever como cliente.
+  Future<void> inscrever(Evento eventoAtual) async {
+    final usuario = FirebaseAuth.instance.currentUser;
+
+    if (usuario == null) {
+      mostrarMensagem('Você precisa estar logado para se inscrever.');
+      return;
+    }
+
+    if (ehEmpresa) {
+      mostrarMensagem('Conta empresa não pode se inscrever como cliente.');
+      return;
+    }
+
+    if (usuarioPodeGerenciar(eventoAtual)) {
+      mostrarMensagem('Você é o organizador deste evento.');
+      return;
+    }
+
+    if (!eventoAtual.inscricoesAbertas) {
+      mostrarMensagem('As inscrições deste evento estão encerradas.');
+      return;
+    }
+
+    setState(() => processandoAcao = true);
+
+    try {
+      await eventoService.inscreverUsuario(
+        eventoId: eventoAtual.id,
+        usuarioId: usuario.uid,
+      );
+
+      if (!mounted) return;
+
+      setState(() => inscrito = true);
+      mostrarMensagem('Inscrição realizada com sucesso!');
+    } catch (e) {
+      mostrarMensagem(e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) {
+        setState(() => processandoAcao = false);
+      }
+    }
+  }
+
+  /// Cancela a inscrição do cliente no evento.
+  ///
+  /// Esse método resolve o problema atual:
+  /// antes o botão ficava desabilitado quando `inscrito == true`,
+  /// então o cliente não conseguia cancelar a inscrição.
+  Future<void> cancelarInscricao(Evento eventoAtual) async {
+    final usuario = FirebaseAuth.instance.currentUser;
+
+    if (usuario == null) {
+      mostrarMensagem('Você precisa estar logado para cancelar inscrição.');
+      return;
+    }
+
+    final confirmou = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Cancelar inscrição'),
+          content: const Text(
+            'Tem certeza que deseja cancelar sua inscrição neste evento?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Não'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Sim, cancelar'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmou != true) return;
+
+    setState(() => processandoAcao = true);
+
+    try {
+      await eventoService.cancelarInscricao(
+        eventoId: eventoAtual.id,
+        usuarioId: usuario.uid,
+      );
+
+      if (!mounted) return;
+
+      setState(() => inscrito = false);
+      mostrarMensagem('Inscrição cancelada com sucesso.');
+    } catch (e) {
+      mostrarMensagem(e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) {
+        setState(() => processandoAcao = false);
+      }
+    }
+  }
+
+  /// Decide qual ação executar no botão principal:
+  /// - se ainda não está inscrito, inscreve;
+  /// - se já está inscrito, cancela inscrição.
+  Future<void> alternarInscricao(Evento eventoAtual) async {
+    if (inscrito) {
+      await cancelarInscricao(eventoAtual);
+    } else {
+      await inscrever(eventoAtual);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(
-      onPressed: onPressed,
-      icon: Icon(icon, color: Colors.white),
-      style: IconButton.styleFrom(backgroundColor: Colors.black.withOpacity(0.28)),
+    if (carregando) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final eventoAtual = evento;
+
+    if (eventoAtual == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Evento')),
+        body: const Center(child: Text('Evento não encontrado.')),
+      );
+    }
+
+    final podeGerenciar = usuarioPodeGerenciar(eventoAtual);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Detalhes do evento'),
+        actions: [
+          // Botões de CRUD aparecem apenas para o criador do evento.
+          if (podeGerenciar)
+            IconButton(
+              tooltip: 'Editar evento',
+              icon: const Icon(Icons.edit_outlined),
+              onPressed:
+                  processandoAcao ? null : () => editarEvento(eventoAtual),
+            ),
+          if (podeGerenciar)
+            IconButton(
+              tooltip: 'Excluir evento',
+              icon: const Icon(Icons.delete_outline),
+              onPressed:
+                  processandoAcao ? null : () => excluirEvento(eventoAtual),
+            ),
+        ],
+      ),
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 430),
+            child: ListView(
+              padding: const EdgeInsets.all(24),
+              children: [
+                if (eventoAtual.imagemUrl.isNotEmpty)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Image.network(
+                      eventoAtual.imagemUrl,
+                      height: 190,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    ),
+                  ),
+                const SizedBox(height: 20),
+                Text(
+                  eventoAtual.titulo,
+                  style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  eventoAtual.descricao,
+                  style: TextStyle(
+                    color: Colors.grey.shade700,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                _DetailLine(
+                  icon: Icons.calendar_month_outlined,
+                  title: 'Data e horário',
+                  value: '${eventoAtual.data} às ${eventoAtual.horario}',
+                ),
+                _DetailLine(
+                  icon: Icons.location_on_outlined,
+                  title: 'Local',
+                  value: '${eventoAtual.local} - ${eventoAtual.bairro}',
+                ),
+                _DetailLine(
+                  icon: Icons.attach_money,
+                  title: 'Custo',
+                  value: eventoAtual.gratuito ? 'Gratuito' : 'Pago',
+                ),
+                _DetailLine(
+                  icon: Icons.how_to_reg_outlined,
+                  title: 'Inscrições',
+                  value: eventoAtual.inscricoesAbertas
+                      ? 'Abertas'
+                      : 'Encerradas',
+                ),
+                const SizedBox(height: 28),
+
+                // Cliente comum pode se inscrever ou cancelar inscrição.
+                if (!ehEmpresa && !podeGerenciar)
+                  ElevatedButton.icon(
+                    onPressed: processandoAcao ||
+                            (!inscrito && !eventoAtual.inscricoesAbertas)
+                        ? null
+                        : () => alternarInscricao(eventoAtual),
+                    icon: Icon(
+                      inscrito
+                          ? Icons.cancel_outlined
+                          : Icons.how_to_reg,
+                    ),
+                    label: Text(
+                      processandoAcao
+                          ? 'Processando...'
+                          : inscrito
+                              ? 'Cancelar inscrição'
+                              : eventoAtual.inscricoesAbertas
+                                  ? 'Inscrever-se'
+                                  : 'Inscrições encerradas',
+                    ),
+                  ),
+
+                // Empresa que não criou o evento apenas visualiza.
+                if (ehEmpresa && !podeGerenciar)
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: const Text(
+                      'Conta empresa pode visualizar este evento, mas não pode se inscrever como cliente.',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                  ),
+
+                // Criador do evento pode editar e excluir.
+                if (podeGerenciar)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: processandoAcao
+                              ? null
+                              : () => editarEvento(eventoAtual),
+                          icon: const Icon(Icons.edit_outlined),
+                          label: const Text('Editar'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: processandoAcao
+                              ? null
+                              : () => excluirEvento(eventoAtual),
+                          icon: const Icon(Icons.delete_outline),
+                          label: const Text('Excluir'),
+                        ),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
 
+/// Linha visual para exibir uma informação do evento.
 class _DetailLine extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -235,47 +444,30 @@ class _DetailLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, color: Colors.black),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 3),
-              Text(value, style: TextStyle(color: Colors.grey.shade700)),
-            ],
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: Colors.black),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: TextStyle(color: Colors.grey.shade700),
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
-    );
-  }
-}
-
-class _SmallTag extends StatelessWidget {
-  final String text;
-  final bool outlined;
-  const _SmallTag({required this.text, required this.outlined});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-      decoration: BoxDecoration(
-        color: outlined ? Colors.white : Colors.black,
-        borderRadius: BorderRadius.circular(6),
-        border: outlined ? Border.all(color: Colors.black) : null,
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: outlined ? Colors.black : Colors.white,
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-        ),
+        ],
       ),
     );
   }

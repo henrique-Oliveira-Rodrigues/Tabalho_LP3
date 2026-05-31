@@ -1,0 +1,50 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Regras da coleção de eventos.
+    match /eventos/{eventoId} {
+
+      // Qualquer pessoa pode visualizar/listar eventos.
+      // Isso permite que clientes vejam os eventos disponíveis.
+      allow read: if true;
+
+      // Apenas usuários logados podem criar eventos.
+      // A regra também exige que o campo criadoPor seja o UID do usuário logado.
+      allow create: if request.auth != null
+        && request.resource.data.criadoPor == request.auth.uid;
+
+      // Apenas o criador do evento pode editar.
+      allow update: if request.auth != null
+        && request.auth.uid == resource.data.criadoPor;
+
+      // Apenas o criador do evento pode excluir.
+      allow delete: if request.auth != null
+        && request.auth.uid == resource.data.criadoPor;
+    }
+
+    // Regras da coleção de inscrições.
+    match /inscricoes/{inscricaoId} {
+
+      // Usuários logados podem consultar inscrições.
+      // Isso é necessário para o app verificar se o cliente já está inscrito.
+      allow read: if request.auth != null;
+
+      // Usuário logado só pode criar inscrição para ele mesmo.
+      // Ou seja, usuarioId precisa ser igual ao UID autenticado.
+      allow create: if request.auth != null
+        && request.resource.data.usuarioId == request.auth.uid
+        && request.resource.data.eventoId is string
+        && request.resource.data.usuarioId is string;
+
+      // Usuário só pode cancelar/deletar a própria inscrição.
+      allow delete: if request.auth != null
+        && resource.data.usuarioId == request.auth.uid;
+
+      // Inscrição não deve ser editada.
+      // Se precisar mudar, o correto é excluir e criar novamente.
+      allow update: if false;
+    }
+  }
+}

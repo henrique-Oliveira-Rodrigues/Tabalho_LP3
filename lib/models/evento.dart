@@ -1,35 +1,47 @@
-<<<<<<< HEAD
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// Modelo que representa um evento da Agenda Local.
+///
+/// A função desta classe é evitar que as telas manipulem diretamente
+/// mapas (`Map<String, dynamic>`) do Firestore. Com isso, o código fica
+/// mais organizado, tipado e fácil de manter.
 class Evento {
+  /// ID do documento no Firestore. Ele não é digitado pelo usuário.
   final String id;
+
+  /// Dados principais exibidos no card e na tela de detalhes.
   final String titulo;
   final String descricao;
   final String data;
   final String horario;
   final String local;
   final String bairro;
+
+  /// Campos opcionais usados na inscrição e na imagem do card.
   final String linkInscricao;
   final String imagemUrl;
+
+  /// Regras simples de exibição/filtro.
   final bool gratuito;
   final bool inscricoesAbertas;
+
+  /// UID do usuário/empresa que criou o evento.
+  /// Esse campo é usado para permitir edição/exclusão somente pelo criador.
   final String criadoPor;
+
+  /// Data e hora combinadas do evento.
+  /// Esse campo facilita validações e futuras ordenações por data real.
+  final DateTime? dataHora;
+
+  /// Data de criação do registro no Firestore.
   final DateTime? criadoEm;
-=======
-class Evento {
-  final String id;
-  final String titulo;
-  final String data;
-  final String local;
-  final String imagemUrl;
-  final bool gratuito;
-  final bool inscricoesAbertas;
->>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
+
+  /// Data da última atualização do registro no Firestore.
+  final DateTime? atualizadoEm;
 
   const Evento({
     required this.id,
     required this.titulo,
-<<<<<<< HEAD
     required this.descricao,
     required this.data,
     required this.horario,
@@ -40,11 +52,16 @@ class Evento {
     required this.gratuito,
     required this.inscricoesAbertas,
     required this.criadoPor,
+    this.dataHora,
     this.criadoEm,
+    this.atualizadoEm,
   });
 
-  // Converte um documento do Firestore em um objeto Evento.
-  // Isso evita espalhar leitura de Map<String, dynamic> pelas telas.
+  /// Cria um objeto Evento a partir de um documento do Firestore.
+  ///
+  /// O Firestore pode retornar documentos antigos sem alguns campos.
+  /// Por isso usamos valores padrão (`?? ''`, `?? false`) para evitar
+  /// erros de tela quando algum campo não existir.
   factory Evento.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final dados = doc.data() ?? <String, dynamic>{};
 
@@ -61,15 +78,25 @@ class Evento {
       gratuito: dados['gratuito'] ?? false,
       inscricoesAbertas: dados['inscricoesAbertas'] ?? false,
       criadoPor: dados['criadoPor'] ?? '',
-      criadoEm: dados['criadoEm'] is Timestamp
-          ? (dados['criadoEm'] as Timestamp).toDate()
-          : null,
+      dataHora: _timestampParaDateTime(dados['dataHora']),
+      criadoEm: _timestampParaDateTime(dados['criadoEm']),
+      atualizadoEm: _timestampParaDateTime(dados['atualizadoEm']),
     );
   }
 
-  // Converte um objeto Evento em Map para salvar no Firestore.
-  // O id não entra aqui porque o Firestore gera o id do documento automaticamente.
-  Map<String, dynamic> toMap() {
+  /// Converte Timestamp do Firestore para DateTime do Dart.
+  static DateTime? _timestampParaDateTime(dynamic valor) {
+    if (valor is Timestamp) {
+      return valor.toDate();
+    }
+    return null;
+  }
+
+  /// Mapa usado no cadastro de um novo evento.
+  ///
+  /// O `id` não entra aqui porque o Firestore cria o ID automaticamente.
+  /// `criadoEm` e `atualizadoEm` usam o horário do servidor do Firebase.
+  Map<String, dynamic> toCreateMap() {
     return {
       'titulo': titulo,
       'descricao': descricao,
@@ -82,15 +109,30 @@ class Evento {
       'gratuito': gratuito,
       'inscricoesAbertas': inscricoesAbertas,
       'criadoPor': criadoPor,
+      'dataHora': dataHora != null ? Timestamp.fromDate(dataHora!) : null,
       'criadoEm': FieldValue.serverTimestamp(),
+      'atualizadoEm': FieldValue.serverTimestamp(),
     };
   }
-=======
-    required this.data,
-    required this.local,
-    required this.imagemUrl,
-    required this.gratuito,
-    required this.inscricoesAbertas,
-  });
->>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
+
+  /// Mapa usado na atualização de um evento existente.
+  ///
+  /// Aqui não alteramos `criadoPor` nem `criadoEm`, pois esses dados
+  /// pertencem ao histórico original do evento.
+  Map<String, dynamic> toUpdateMap() {
+    return {
+      'titulo': titulo,
+      'descricao': descricao,
+      'data': data,
+      'horario': horario,
+      'local': local,
+      'bairro': bairro,
+      'linkInscricao': linkInscricao,
+      'imagemUrl': imagemUrl,
+      'gratuito': gratuito,
+      'inscricoesAbertas': inscricoesAbertas,
+      'dataHora': dataHora != null ? Timestamp.fromDate(dataHora!) : null,
+      'atualizadoEm': FieldValue.serverTimestamp(),
+    };
+  }
 }
