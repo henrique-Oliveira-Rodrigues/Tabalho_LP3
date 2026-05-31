@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
@@ -86,18 +85,6 @@ class _LoginScreenState extends State<LoginScreen> {
         setState(() => carregando = false);
       }
     }
-=======
-import 'package:flutter/material.dart';
-
-class LoginScreen extends StatelessWidget {
-  TextEditingController txtEmail = TextEditingController();
-  TextEditingController txtSenha = TextEditingController();
-
-  LoginScreen({super.key});
-
-  Future login(BuildContext context) async {
-    await
->>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
   }
 
   @override
@@ -107,11 +94,7 @@ class LoginScreen extends StatelessWidget {
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 430),
-<<<<<<< HEAD
             child: SingleChildScrollView(
-=======
-            child: Padding(
->>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 48),
               child: Column(
                 children: [
@@ -119,7 +102,6 @@ class LoginScreen extends StatelessWidget {
                   Container(
                     width: 64,
                     height: 64,
-<<<<<<< HEAD
                     decoration: BoxDecoration(
                       color: Colors.black,
                       borderRadius: BorderRadius.circular(18),
@@ -135,13 +117,6 @@ class LoginScreen extends StatelessWidget {
                     'Bem-vindo de volta',
                     style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                   ),
-=======
-                    decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(18)),
-                    child: const Icon(Icons.calendar_month_outlined, color: Colors.white, size: 34),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text('Bem-vindo de volta', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
->>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
                   const SizedBox(height: 8),
                   Text(
                     'Entre para encontrar eventos perto de você',
@@ -150,7 +125,6 @@ class LoginScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 56),
                   const _Label('Email'),
-<<<<<<< HEAD
                   TextField(
                     controller: emailController,
                     keyboardType: TextInputType.emailAddress,
@@ -197,26 +171,6 @@ class LoginScreen extends StatelessWidget {
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-=======
-                  const TextField(keyboardType: TextInputType.emailAddress, decoration: InputDecoration(hintText: 'seu@email.com')),
-                  const SizedBox(height: 20),
-                  const _Label('Senha'),
-                  const TextField(obscureText: true, decoration: InputDecoration(hintText: '••••••••')),
-                  const SizedBox(height: 28),
-                  ElevatedButton(
-                    onPressed: () => Navigator.pushReplacementNamed(context, '/home'),
-                    child: const Text('Entrar'),
-                  ),
-                  const SizedBox(height: 14),
-                  OutlinedButton(
-                    onPressed: () => Navigator.pushNamed(context, '/cadastro'),
-                    style: OutlinedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(50),
-                      side: const BorderSide(color: Colors.black, width: 2),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                    child: const Text('Criar conta', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
->>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
                   ),
                 ],
               ),
@@ -230,10 +184,6 @@ class LoginScreen extends StatelessWidget {
 
 class _Label extends StatelessWidget {
   final String text;
-<<<<<<< HEAD
-
-=======
->>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
   const _Label(this.text);
 
   @override

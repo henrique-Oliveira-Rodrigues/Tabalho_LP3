@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-<<<<<<< HEAD
 
 import '../models/evento.dart';
 import '../services/evento_service.dart';
@@ -9,13 +8,6 @@ import 'filtros_screen.dart';
 class HomeScreen extends StatefulWidget {
   final String title;
 
-=======
-import '../data/mock_events.dart';
-import '../widgets/event_card.dart';
-
-class HomeScreen extends StatefulWidget {
-  final String title;
->>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
   const HomeScreen({super.key, this.title = 'Descobrir Eventos'});
 
   @override
@@ -23,7 +15,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-<<<<<<< HEAD
   final EventoService eventoService = EventoService();
   String search = '';
   FiltrosEventos? filtros;
@@ -58,14 +49,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-=======
-  String search = '';
-
-  @override
-  Widget build(BuildContext context) {
-    final filtered = mockEvents.where((event) => event.titulo.toLowerCase().contains(search.toLowerCase())).toList();
-
->>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
     return Container(
       color: Colors.grey.shade50,
       child: SafeArea(
@@ -77,14 +60,10 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-<<<<<<< HEAD
                   Text(
                     widget.title,
                     style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
                   ),
-=======
-                  Text(widget.title, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
->>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
                   const SizedBox(height: 18),
                   Row(
                     children: [
@@ -104,7 +83,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(width: 10),
                       IconButton.filledTonal(
-<<<<<<< HEAD
                         onPressed: abrirFiltros,
                         icon: const Icon(Icons.tune),
                         style: IconButton.styleFrom(
@@ -115,11 +93,6 @@ class _HomeScreenState extends State<HomeScreen> {
                               ? Colors.white
                               : Colors.black,
                         ),
-=======
-                        onPressed: () => Navigator.pushNamed(context, '/filtros'),
-                        icon: const Icon(Icons.tune),
-                        style: IconButton.styleFrom(backgroundColor: Colors.grey.shade100, foregroundColor: Colors.black),
->>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
                       ),
                     ],
                   ),
@@ -127,7 +100,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             Expanded(
-<<<<<<< HEAD
               // StreamBuilder escuta a coleção eventos em tempo real.
               child: StreamBuilder<List<Evento>>(
                 stream: eventoService.listarEventos(),
@@ -168,17 +140,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         onTap: () => Navigator.pushNamed(context, '/evento/${evento.id}'),
                       );
                     },
-=======
-              child: ListView.separated(
-                padding: const EdgeInsets.all(16),
-                itemCount: filtered.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 16),
-                itemBuilder: (_, index) {
-                  final evento = filtered[index];
-                  return EventCard(
-                    evento: evento,
-                    onTap: () => Navigator.pushNamed(context, '/evento/${evento.id}'),
->>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
                   );
                 },
               ),

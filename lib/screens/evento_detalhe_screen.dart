@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-<<<<<<< HEAD
 
 import '../models/evento.dart';
 import '../services/evento_service.dart';
@@ -7,17 +6,10 @@ import '../services/evento_service.dart';
 class EventoDetalheScreen extends StatelessWidget {
   final String eventoId;
 
-=======
-import '../data/mock_events.dart';
-
-class EventoDetalheScreen extends StatelessWidget {
-  final String eventoId;
->>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
   const EventoDetalheScreen({super.key, required this.eventoId});
 
   @override
   Widget build(BuildContext context) {
-<<<<<<< HEAD
     final eventoService = EventoService();
 
     return FutureBuilder<Evento?>(
@@ -182,63 +174,11 @@ class EventoDetalheScreen extends StatelessWidget {
                                     event.descricao,
                                     style: TextStyle(color: Colors.grey.shade700, height: 1.5),
                                   ),
-=======
-    final event = mockEvents.firstWhere((e) => e.id == eventoId, orElse: () => mockEvents.first);
-
-    return Scaffold(
-      body: SafeArea(
-        top: false,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 430),
-            child: Column(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Stack(
-                          children: [
-                            SizedBox(
-                              height: 260,
-                              width: double.infinity,
-                              child: ColorFiltered(
-                                colorFilter: const ColorFilter.matrix(<double>[
-                                  0.2126, 0.7152, 0.0722, 0, 0,
-                                  0.2126, 0.7152, 0.0722, 0, 0,
-                                  0.2126, 0.7152, 0.0722, 0, 0,
-                                  0, 0, 0, 0.9, 0,
-                                ]),
-                                child: Image.network(
-                                  event.imagemUrl,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) => Container(color: Colors.grey.shade200),
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              top: 42,
-                              left: 16,
-                              right: 16,
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  _CircleButton(icon: Icons.arrow_back, onPressed: () => Navigator.pop(context)),
-                                  Row(
-                                    children: [
-                                      _CircleButton(icon: Icons.share_outlined, onPressed: () {}),
-                                      const SizedBox(width: 8),
-                                      _CircleButton(icon: Icons.favorite_border, onPressed: () {}),
-                                    ],
-                                  ),
->>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
                                 ],
                               ),
                             ),
                           ],
                         ),
-<<<<<<< HEAD
                       ),
                     ),
                     Padding(
@@ -263,54 +203,6 @@ class EventoDetalheScreen extends StatelessWidget {
           ),
         );
       },
-=======
-                        Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Wrap(
-                                spacing: 8,
-                                children: [
-                                  if (event.gratuito) const _SmallTag(text: 'Gratuito', outlined: true),
-                                  if (event.inscricoesAbertas) const _SmallTag(text: 'Inscrições abertas', outlined: false),
-                                ],
-                              ),
-                              const SizedBox(height: 14),
-                              Text(event.titulo, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, height: 1.15)),
-                              const SizedBox(height: 22),
-                              _DetailLine(icon: Icons.calendar_month_outlined, title: 'Data e Horário', value: event.data),
-                              const SizedBox(height: 16),
-                              _DetailLine(icon: Icons.location_on_outlined, title: 'Local', value: event.local),
-                              const SizedBox(height: 24),
-                              Divider(color: Colors.grey.shade300),
-                              const SizedBox(height: 18),
-                              const Text('Sobre o evento', style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),
-                              const SizedBox(height: 10),
-                              Text(
-                                'Este é um evento incrível focado em reunir a comunidade local. Teremos diversas atividades programadas, espaços para networking e muito mais. Venha participar conosco e traga seus amigos!\n\nAs vagas são limitadas, então não perca a oportunidade de garantir seu lugar.',
-                                style: TextStyle(color: Colors.grey.shade700, height: 1.5),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: ElevatedButton(
-                    onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Redirecionando para inscrição...'))),
-                    child: const Text('Ver inscrição'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
->>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
     );
   }
 }
@@ -318,10 +210,6 @@ class EventoDetalheScreen extends StatelessWidget {
 class _CircleButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onPressed;
-<<<<<<< HEAD
-
-=======
->>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
   const _CircleButton({required this.icon, required this.onPressed});
 
   @override
@@ -338,16 +226,12 @@ class _DetailLine extends StatelessWidget {
   final IconData icon;
   final String title;
   final String value;
-<<<<<<< HEAD
 
   const _DetailLine({
     required this.icon,
     required this.title,
     required this.value,
   });
-=======
-  const _DetailLine({required this.icon, required this.title, required this.value});
->>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
 
   @override
   Widget build(BuildContext context) {
@@ -374,10 +258,6 @@ class _DetailLine extends StatelessWidget {
 class _SmallTag extends StatelessWidget {
   final String text;
   final bool outlined;
-<<<<<<< HEAD
-
-=======
->>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
   const _SmallTag({required this.text, required this.outlined});
 
   @override
@@ -389,7 +269,6 @@ class _SmallTag extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
         border: outlined ? Border.all(color: Colors.black) : null,
       ),
-<<<<<<< HEAD
       child: Text(
         text,
         style: TextStyle(
@@ -398,9 +277,6 @@ class _SmallTag extends StatelessWidget {
           fontWeight: FontWeight.bold,
         ),
       ),
-=======
-      child: Text(text, style: TextStyle(color: outlined ? Colors.black : Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
->>>>>>> 9ffcc5e17a99758125bd943d392497ac5c46617c
     );
   }
 }
