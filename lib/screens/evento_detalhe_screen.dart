@@ -32,6 +32,7 @@ class _EventoDetalheScreenState extends State<EventoDetalheScreen> {
   bool processandoAcao = false;
   bool ehEmpresa = false;
   bool inscrito = false;
+  bool favorito = false;
 
   @override
   void initState() {
@@ -53,9 +54,15 @@ class _EventoDetalheScreenState extends State<EventoDetalheScreen> {
       final usuario = FirebaseAuth.instance.currentUser;
 
       bool jaInscrito = false;
+      bool jaFavoritado = false;
 
       if (usuario != null) {
         jaInscrito = await eventoService.usuarioEstaInscrito(
+          eventoId: widget.eventoId,
+          usuarioId: usuario.uid,
+        );
+
+        jaFavoritado = await eventoService.usuarioFavoritouEvento(
           eventoId: widget.eventoId,
           usuarioId: usuario.uid,
         );
@@ -67,6 +74,7 @@ class _EventoDetalheScreenState extends State<EventoDetalheScreen> {
         evento = eventoCarregado;
         ehEmpresa = empresa;
         inscrito = jaInscrito;
+        favorito = jaFavoritado;
         carregando = false;
       });
     } catch (_) {
@@ -193,9 +201,8 @@ class _EventoDetalheScreenState extends State<EventoDetalheScreen> {
 
   /// Cancela a inscrição do cliente no evento.
   ///
-  /// Esse método resolve o problema atual:
-  /// antes o botão ficava desabilitado quando `inscrito == true`,
-  /// então o cliente não conseguia cancelar a inscrição.
+  /// Esse método permite que o botão mude de "Inscrever-se" para
+  /// "Cancelar inscrição" quando o usuário já está inscrito.
   Future<void> cancelarInscricao(Evento eventoAtual) async {
     final usuario = FirebaseAuth.instance.currentUser;
 
@@ -260,6 +267,51 @@ class _EventoDetalheScreenState extends State<EventoDetalheScreen> {
     }
   }
 
+  /// Alterna o evento entre favoritado e não favoritado.
+  ///
+  /// Essa ação é independente da inscrição: o usuário pode apenas salvar
+  /// o evento como favorito para consultar depois na aba Favoritos.
+  Future<void> alternarFavorito(Evento eventoAtual) async {
+    final usuario = FirebaseAuth.instance.currentUser;
+
+    if (usuario == null) {
+      mostrarMensagem('Você precisa estar logado para favoritar eventos.');
+      return;
+    }
+
+    setState(() => processandoAcao = true);
+
+    try {
+      if (favorito) {
+        await eventoService.removerFavorito(
+          eventoId: eventoAtual.id,
+          usuarioId: usuario.uid,
+        );
+
+        if (!mounted) return;
+
+        setState(() => favorito = false);
+        mostrarMensagem('Evento removido dos favoritos.');
+      } else {
+        await eventoService.favoritarEvento(
+          eventoId: eventoAtual.id,
+          usuarioId: usuario.uid,
+        );
+
+        if (!mounted) return;
+
+        setState(() => favorito = true);
+        mostrarMensagem('Evento adicionado aos favoritos.');
+      }
+    } catch (e) {
+      mostrarMensagem(e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) {
+        setState(() => processandoAcao = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (carregando) {
@@ -283,6 +335,16 @@ class _EventoDetalheScreenState extends State<EventoDetalheScreen> {
       appBar: AppBar(
         title: const Text('Detalhes do evento'),
         actions: [
+          // Botão de favorito aparece para usuários logados que não são o criador.
+          // O favorito é pessoal do usuário e aparece na aba Favoritos.
+          if (FirebaseAuth.instance.currentUser != null && !podeGerenciar)
+            IconButton(
+              tooltip: favorito ? 'Remover dos favoritos' : 'Adicionar aos favoritos',
+              icon: Icon(favorito ? Icons.favorite : Icons.favorite_border),
+              onPressed:
+                  processandoAcao ? null : () => alternarFavorito(eventoAtual),
+            ),
+
           // Botões de CRUD aparecem apenas para o criador do evento.
           if (podeGerenciar)
             IconButton(
@@ -366,9 +428,7 @@ class _EventoDetalheScreenState extends State<EventoDetalheScreen> {
                         ? null
                         : () => alternarInscricao(eventoAtual),
                     icon: Icon(
-                      inscrito
-                          ? Icons.cancel_outlined
-                          : Icons.how_to_reg,
+                      inscrito ? Icons.cancel_outlined : Icons.how_to_reg,
                     ),
                     label: Text(
                       processandoAcao

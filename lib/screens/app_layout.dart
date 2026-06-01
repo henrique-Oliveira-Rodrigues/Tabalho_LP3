@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
+import 'favoritos_screen.dart';
 import 'home_screen.dart';
 
 class AppLayout extends StatefulWidget {
@@ -79,10 +80,7 @@ class _AppLayoutState extends State<AppLayout> {
     final pages = [
       const HomeScreen(title: 'Descobrir Eventos'),
       const HomeScreen(title: 'Eventos'),
-      const _PlaceholderPage(
-        title: 'Favoritos',
-        message: 'Área reservada para eventos favoritos.',
-      ),
+      const FavoritosScreen(),
       _PerfilPage(
         email: usuario?.email ?? 'Usuário sem email',
         nome: usuario?.displayName ?? 'Usuário',

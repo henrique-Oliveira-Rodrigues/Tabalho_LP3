@@ -1,48 +1,78 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../models/evento.dart';
 import '../services/evento_service.dart';
+import '../widgets/ios_toggle.dart';
 
-/// Tela de detalhes de um evento.
+/// Tela usada para cadastrar e editar eventos.
 ///
-/// Nesta tela o usuário pode:
-/// - visualizar as informações completas do evento;
-/// - se inscrever, caso seja cliente;
-/// - cancelar inscrição, caso já esteja inscrito;
-/// - editar/excluir, caso seja o criador do evento.
-class EventoDetalheScreen extends StatefulWidget {
-  final String eventoId;
+/// Se `eventoId` for nulo, a tela funciona em modo cadastro.
+/// Se `eventoId` vier preenchido, a tela funciona em modo edição.
+class CadastroEventoScreen extends StatefulWidget {
+  final String? eventoId;
 
-  const EventoDetalheScreen({
+  const CadastroEventoScreen({
     super.key,
-    required this.eventoId,
+    this.eventoId,
   });
 
   @override
-  State<EventoDetalheScreen> createState() => _EventoDetalheScreenState();
+  State<CadastroEventoScreen> createState() => _CadastroEventoScreenState();
 }
 
-class _EventoDetalheScreenState extends State<EventoDetalheScreen> {
-  /// Serviço responsável pelas operações com eventos e inscrições no Firestore.
+class _CadastroEventoScreenState extends State<CadastroEventoScreen> {
+  /// Chave do formulário. Permite executar todos os validators antes de salvar.
+  final _formKey = GlobalKey<FormState>();
+
+  /// Serviço responsável pelas operações no Firestore.
   final EventoService eventoService = EventoService();
 
-  /// Evento carregado do Firestore.
-  Evento? evento;
+  /// Controllers dos campos do formulário.
+  final tituloController = TextEditingController();
+  final descricaoController = TextEditingController();
+  final dataController = TextEditingController();
+  final horarioController = TextEditingController();
+  final localController = TextEditingController();
+  final bairroController = TextEditingController();
+  final linkInscricaoController = TextEditingController();
+  final imagemUrlController = TextEditingController();
 
-  /// Controla se a tela está carregando o evento.
-  bool carregandoEvento = true;
+  /// Controles booleanos do evento.
+  bool gratuito = false;
+  bool inscricoesAbertas = true;
 
-  /// Controla se o botão de inscrição/cancelamento está processando.
-  bool carregandoInscricao = false;
+  /// Estados de carregamento.
+  bool carregando = false;
+  bool carregandoEvento = false;
 
-  /// Indica se o usuário atual já está inscrito no evento.
-  bool usuarioInscrito = false;
+  /// Evento original usado quando a tela está em modo edição.
+  Evento? eventoOriginal;
+
+  /// Define se a tela está cadastrando ou editando.
+  bool get modoEdicao => widget.eventoId != null;
 
   @override
   void initState() {
     super.initState();
-    carregarEvento();
+
+    if (modoEdicao) {
+      carregarEventoParaEdicao();
+    }
+  }
+
+  @override
+  void dispose() {
+    tituloController.dispose();
+    descricaoController.dispose();
+    dataController.dispose();
+    horarioController.dispose();
+    localController.dispose();
+    bairroController.dispose();
+    linkInscricaoController.dispose();
+    imagemUrlController.dispose();
+    super.dispose();
   }
 
   /// Mostra mensagens rápidas para o usuário.
@@ -52,34 +82,47 @@ class _EventoDetalheScreenState extends State<EventoDetalheScreen> {
     );
   }
 
-  /// Carrega o evento pelo ID recebido na rota.
-  ///
-  /// Depois de carregar o evento, também verifica se o usuário atual
-  /// já está inscrito nele.
-  Future<void> carregarEvento() async {
+  /// Carrega os dados de um evento existente para edição.
+  Future<void> carregarEventoParaEdicao() async {
     setState(() => carregandoEvento = true);
 
     try {
-      final eventoEncontrado =
-          await eventoService.buscarEventoPorId(widget.eventoId);
+      final evento = await eventoService.buscarEventoPorId(widget.eventoId!);
+      final usuario = FirebaseAuth.instance.currentUser;
 
       if (!mounted) return;
 
-      if (eventoEncontrado == null) {
+      if (evento == null) {
         mostrarMensagem('Evento não encontrado.');
         Navigator.pop(context);
         return;
       }
 
-      setState(() {
-        evento = eventoEncontrado;
-      });
+      /// Regra de negócio:
+      /// somente o usuário que criou o evento pode editá-lo.
+      if (usuario == null || evento.criadoPor != usuario.uid) {
+        mostrarMensagem('Você só pode editar eventos criados por você.');
+        Navigator.pop(context);
+        return;
+      }
 
-      await verificarInscricao(eventoEncontrado.id);
+      eventoOriginal = evento;
+
+      tituloController.text = evento.titulo;
+      descricaoController.text = evento.descricao;
+      dataController.text = evento.data;
+      horarioController.text = evento.horario;
+      localController.text = evento.local;
+      bairroController.text = evento.bairro;
+      linkInscricaoController.text = evento.linkInscricao;
+      imagemUrlController.text = evento.imagemUrl;
+
+      gratuito = evento.gratuito;
+      inscricoesAbertas = evento.inscricoesAbertas;
     } catch (_) {
       if (!mounted) return;
 
-      mostrarMensagem('Erro ao carregar evento.');
+      mostrarMensagem('Erro ao carregar evento para edição.');
       Navigator.pop(context);
     } finally {
       if (mounted) {
@@ -88,381 +131,460 @@ class _EventoDetalheScreenState extends State<EventoDetalheScreen> {
     }
   }
 
-  /// Verifica se o usuário logado já está inscrito no evento.
+  /// Converte uma data no formato dd/mm/aaaa para DateTime.
   ///
-  /// Essa verificação é usada para decidir se o botão deve mostrar:
-  /// - "Inscrever-se"
-  /// - ou "Cancelar inscrição"
-  Future<void> verificarInscricao(String eventoId) async {
-    final usuario = FirebaseAuth.instance.currentUser;
+  /// Retorna `null` caso a data seja inválida.
+  DateTime? converterData(String data) {
+    final partes = data.split('/');
 
-    if (usuario == null) {
-      return;
+    if (partes.length != 3) {
+      return null;
     }
 
-    final inscrito = await eventoService.usuarioEstaInscrito(
-      eventoId: eventoId,
-      usuarioId: usuario.uid,
+    final dia = int.tryParse(partes[0]);
+    final mes = int.tryParse(partes[1]);
+    final ano = int.tryParse(partes[2]);
+
+    if (dia == null || mes == null || ano == null) {
+      return null;
+    }
+
+    final dataConvertida = DateTime(ano, mes, dia);
+
+    /// O Dart ajusta automaticamente datas inválidas.
+    /// Exemplo: DateTime(2026, 13, 40) vira outra data.
+    /// Por isso fazemos a conferência abaixo.
+    if (dataConvertida.day != dia ||
+        dataConvertida.month != mes ||
+        dataConvertida.year != ano) {
+      return null;
+    }
+
+    return dataConvertida;
+  }
+
+  /// Converte um horário no formato HH:mm para TimeOfDay.
+  ///
+  /// Retorna `null` caso o horário seja inválido.
+  TimeOfDay? converterHorario(String horario) {
+    final partes = horario.split(':');
+
+    if (partes.length != 2) {
+      return null;
+    }
+
+    final hora = int.tryParse(partes[0]);
+    final minuto = int.tryParse(partes[1]);
+
+    if (hora == null || minuto == null) {
+      return null;
+    }
+
+    if (hora < 0 || hora > 23 || minuto < 0 || minuto > 59) {
+      return null;
+    }
+
+    return TimeOfDay(hour: hora, minute: minuto);
+  }
+
+  /// Junta a data e o horário em um único DateTime.
+  ///
+  /// Isso é usado para validar se o evento está no passado e também para salvar
+  /// uma data ordenável no Firestore.
+  DateTime? montarDataHoraEvento(String data, String horario) {
+    final dataConvertida = converterData(data);
+    final horarioConvertido = converterHorario(horario);
+
+    if (dataConvertida == null || horarioConvertido == null) {
+      return null;
+    }
+
+    return DateTime(
+      dataConvertida.year,
+      dataConvertida.month,
+      dataConvertida.day,
+      horarioConvertido.hour,
+      horarioConvertido.minute,
+    );
+  }
+
+  /// Abre o seletor visual de data.
+  Future<void> selecionarData() async {
+    final agora = DateTime.now();
+    final hoje = DateTime(agora.year, agora.month, agora.day);
+    final dataAtualCampo = converterData(dataController.text);
+
+    /// O initialDate não pode ser menor que o firstDate.
+    /// Se o campo estiver vazio ou com data antiga, usamos hoje.
+    final dataInicial = dataAtualCampo != null && !dataAtualCampo.isBefore(hoje)
+        ? dataAtualCampo
+        : hoje;
+
+    final escolhida = await showDatePicker(
+      context: context,
+      initialDate: dataInicial,
+      firstDate: hoje,
+      lastDate: DateTime(agora.year + 5),
     );
 
-    if (!mounted) return;
+    if (escolhida == null) return;
+
+    final dia = escolhida.day.toString().padLeft(2, '0');
+    final mes = escolhida.month.toString().padLeft(2, '0');
+    final ano = escolhida.year.toString();
 
     setState(() {
-      usuarioInscrito = inscrito;
+      dataController.text = '$dia/$mes/$ano';
     });
   }
 
-  /// Alterna entre inscrição e cancelamento de inscrição.
+  /// Abre o seletor visual de horário.
+  Future<void> selecionarHorario() async {
+    final horarioAtualCampo = converterHorario(horarioController.text);
+
+    final escolhido = await showTimePicker(
+      context: context,
+      initialTime: horarioAtualCampo ?? TimeOfDay.now(),
+    );
+
+    if (escolhido == null) return;
+
+    final hora = escolhido.hour.toString().padLeft(2, '0');
+    final minuto = escolhido.minute.toString().padLeft(2, '0');
+
+    setState(() {
+      horarioController.text = '$hora:$minuto';
+    });
+  }
+
+  /// Validação complementar que depende da combinação data + horário.
+  String? validarRegrasDoEvento(DateTime? dataHora) {
+    if (dataHora == null) {
+      return 'Informe uma data e horário válidos.';
+    }
+
+    if (dataHora.isBefore(DateTime.now())) {
+      return 'A data e o horário do evento não podem estar no passado.';
+    }
+
+    return null;
+  }
+
+  /// Salva o evento no Firestore.
   ///
-  /// Se o cliente ainda não está inscrito, realiza a inscrição.
-  /// Se já está inscrito, cancela a inscrição.
-  Future<void> alternarInscricao() async {
+  /// Fluxos atendidos:
+  /// - cadastro: cria um novo documento em `eventos`;
+  /// - edição: atualiza o documento existente.
+  Future<void> salvarEvento() async {
     final usuario = FirebaseAuth.instance.currentUser;
-    final eventoAtual = evento;
 
     if (usuario == null) {
-      mostrarMensagem('Você precisa estar logado para se inscrever.');
+      mostrarMensagem('Você precisa estar logado para salvar evento.');
       return;
     }
 
-    if (eventoAtual == null) {
-      mostrarMensagem('Evento não encontrado.');
+    /// Executa as validações dos TextFormField.
+    if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    if (!eventoAtual.inscricoesAbertas) {
-      mostrarMensagem('As inscrições deste evento estão fechadas.');
+    final data = dataController.text.trim();
+    final horario = horarioController.text.trim();
+    final dataHora = montarDataHoraEvento(data, horario);
+
+    final erroRegraEvento = validarRegrasDoEvento(dataHora);
+
+    if (erroRegraEvento != null) {
+      mostrarMensagem(erroRegraEvento);
       return;
     }
 
-    /// Regra de negócio:
-    /// o criador/organizador do evento não deve se inscrever no próprio evento.
-    if (eventoAtual.criadoPor == usuario.uid) {
-      mostrarMensagem('Você é o organizador deste evento.');
-      return;
-    }
-
-    setState(() => carregandoInscricao = true);
+    setState(() => carregando = true);
 
     try {
-      if (usuarioInscrito) {
-        await eventoService.cancelarInscricao(
-          eventoId: eventoAtual.id,
-          usuarioId: usuario.uid,
-        );
+      final evento = Evento(
+        id: widget.eventoId ?? '',
+        titulo: tituloController.text.trim(),
+        descricao: descricaoController.text.trim(),
+        data: data,
+        horario: horario,
+        local: localController.text.trim(),
+        bairro: bairroController.text.trim(),
+        linkInscricao: linkInscricaoController.text.trim(),
+        imagemUrl: imagemUrlController.text.trim(),
+        gratuito: gratuito,
+        inscricoesAbertas: inscricoesAbertas,
+        criadoPor: eventoOriginal?.criadoPor ?? usuario.uid,
+        dataHora: dataHora,
+      );
 
-        if (!mounted) return;
-
-        setState(() {
-          usuarioInscrito = false;
-        });
-
-        mostrarMensagem('Inscrição cancelada com sucesso.');
+      if (modoEdicao) {
+        await eventoService.atualizarEvento(evento);
+        mostrarMensagem('Evento atualizado com sucesso!');
       } else {
-        await eventoService.inscreverUsuario(
-          eventoId: eventoAtual.id,
-          usuarioId: usuario.uid,
-        );
-
-        if (!mounted) return;
-
-        setState(() {
-          usuarioInscrito = true;
-        });
-
-        mostrarMensagem('Inscrição realizada com sucesso.');
+        await eventoService.criarEvento(evento);
+        mostrarMensagem('Evento cadastrado com sucesso!');
       }
+
+      if (!mounted) return;
+
+      Navigator.pop(context);
     } catch (e) {
       mostrarMensagem(e.toString().replaceFirst('Exception: ', ''));
     } finally {
       if (mounted) {
-        setState(() => carregandoInscricao = false);
+        setState(() => carregando = false);
       }
     }
   }
 
-  /// Exclui o evento.
-  ///
-  /// Apenas o criador do evento pode excluir.
-  Future<void> excluirEvento() async {
-    final usuario = FirebaseAuth.instance.currentUser;
-    final eventoAtual = evento;
-
-    if (usuario == null || eventoAtual == null) {
-      mostrarMensagem('Não foi possível excluir o evento.');
-      return;
-    }
-
-    if (eventoAtual.criadoPor != usuario.uid) {
-      mostrarMensagem('Você só pode excluir eventos criados por você.');
-      return;
-    }
-
-    final confirmar = await showDialog<bool>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Excluir evento'),
-          content: const Text(
-            'Tem certeza que deseja excluir este evento? '
-            'Essa ação não poderá ser desfeita.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Excluir'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (confirmar != true) {
-      return;
-    }
-
-    try {
-      await eventoService.excluirEvento(eventoAtual.id);
-
-      if (!mounted) return;
-
-      mostrarMensagem('Evento excluído com sucesso.');
-      Navigator.pop(context);
-    } catch (e) {
-      mostrarMensagem(e.toString().replaceFirst('Exception: ', ''));
-    }
-  }
-
-  /// Navega para a tela de edição do evento.
-  void editarEvento() {
-    final eventoAtual = evento;
-
-    if (eventoAtual == null) {
-      return;
-    }
-
-    Navigator.pushNamed(
-      context,
-      '/editar-evento/${eventoAtual.id}',
-    ).then((_) {
-      carregarEvento();
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    final usuario = FirebaseAuth.instance.currentUser;
-
-    if (carregandoEvento) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
-
-    final eventoAtual = evento;
-
-    if (eventoAtual == null) {
-      return const Scaffold(
-        body: Center(
-          child: Text('Evento não encontrado.'),
-        ),
-      );
-    }
-
-    /// Verifica se o usuário atual é o criador/organizador do evento.
-    final ehCriador =
-        usuario != null && usuario.uid == eventoAtual.criadoPor;
+    final tituloTela = modoEdicao ? 'Editar Evento' : 'Novo Evento';
+    final textoBotao = modoEdicao ? 'Salvar alterações' : 'Cadastrar evento';
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Detalhes do Evento',
-          style: TextStyle(fontWeight: FontWeight.bold),
+        title: Text(
+          tituloTela,
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        actions: [
-          /// Botões de edição/exclusão aparecem apenas para o criador.
-          if (ehCriador) ...[
-            IconButton(
-              icon: const Icon(Icons.edit),
-              tooltip: 'Editar evento',
-              onPressed: editarEvento,
-            ),
-            IconButton(
-              icon: const Icon(Icons.delete),
-              tooltip: 'Excluir evento',
-              onPressed: excluirEvento,
-            ),
-          ],
-        ],
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: carregando ? null : () => Navigator.pop(context),
+        ),
       ),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 460),
-            child: ListView(
-              padding: const EdgeInsets.all(24),
-              children: [
-                if (eventoAtual.imagemUrl.isNotEmpty)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(18),
-                    child: Image.network(
-                      eventoAtual.imagemUrl,
-                      height: 220,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          height: 220,
-                          alignment: Alignment.center,
-                          color: Colors.grey.shade200,
-                          child: const Icon(
-                            Icons.image_not_supported,
-                            size: 48,
+            constraints: const BoxConstraints(maxWidth: 430),
+            child: carregandoEvento
+                ? const Center(child: CircularProgressIndicator())
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    child: Form(
+                      key: _formKey,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      child: Column(
+                        children: [
+                          _Field(
+                            controller: tituloController,
+                            label: 'Título do Evento *',
+                            hint: 'Ex: Workshop de Fotografia',
+                            validator: (value) {
+                              final texto = value?.trim() ?? '';
+
+                              if (texto.isEmpty) {
+                                return 'Informe o título do evento.';
+                              }
+
+                              if (texto.length < 3) {
+                                return 'O título deve ter pelo menos 3 caracteres.';
+                              }
+
+                              return null;
+                            },
                           ),
-                        );
-                      },
-                    ),
-                  )
-                else
-                  Container(
-                    height: 180,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: const Icon(
-                      Icons.event,
-                      size: 56,
-                    ),
-                  ),
-                const SizedBox(height: 24),
+                          const SizedBox(height: 18),
+                          _Field(
+                            controller: descricaoController,
+                            label: 'Descrição *',
+                            hint: 'Conte mais sobre o evento...',
+                            maxLines: 4,
+                            validator: (value) {
+                              final texto = value?.trim() ?? '';
 
-                Text(
-                  eventoAtual.titulo,
-                  style: const TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
+                              if (texto.isEmpty) {
+                                return 'Informe a descrição do evento.';
+                              }
 
-                Row(
-                  children: [
-                    if (eventoAtual.gratuito)
-                      const _Tag(text: 'Gratuito'),
-                    if (eventoAtual.gratuito) const SizedBox(width: 8),
-                    if (eventoAtual.inscricoesAbertas)
-                      const _Tag(text: 'Inscrições abertas'),
-                    if (!eventoAtual.inscricoesAbertas)
-                      const _Tag(text: 'Inscrições fechadas'),
-                  ],
-                ),
-                const SizedBox(height: 24),
+                              if (texto.length < 10) {
+                                return 'A descrição deve ter pelo menos 10 caracteres.';
+                              }
 
-                _InfoLine(
-                  icon: Icons.calendar_month,
-                  label: 'Data',
-                  value: eventoAtual.data,
-                ),
-                _InfoLine(
-                  icon: Icons.access_time,
-                  label: 'Horário',
-                  value: eventoAtual.horario,
-                ),
-                _InfoLine(
-                  icon: Icons.location_on,
-                  label: 'Local',
-                  value: eventoAtual.local,
-                ),
-                _InfoLine(
-                  icon: Icons.map,
-                  label: 'Bairro',
-                  value: eventoAtual.bairro,
-                ),
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 18),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _Field(
+                                  controller: dataController,
+                                  label: 'Data *',
+                                  hint: 'dd/mm/aaaa',
+                                  keyboardType: TextInputType.number,
+                                  inputFormatters: [DataInputFormatter()],
+                                  suffixIcon: IconButton(
+                                    icon: const Icon(Icons.calendar_month),
+                                    onPressed: selecionarData,
+                                  ),
+                                  validator: (value) {
+                                    final texto = value?.trim() ?? '';
 
-                const SizedBox(height: 28),
-                const Text(
-                  'Descrição',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  eventoAtual.descricao,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey.shade800,
-                    height: 1.4,
-                  ),
-                ),
+                                    if (texto.isEmpty) {
+                                      return 'Informe a data.';
+                                    }
 
-                const SizedBox(height: 32),
+                                    if (!RegExp(r'^\d{2}/\d{2}/\d{4}$')
+                                        .hasMatch(texto)) {
+                                      return 'Use dd/mm/aaaa.';
+                                    }
 
-                /// Caso o usuário seja o criador, ele não precisa se inscrever.
-                if (ehCriador)
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: const Text(
-                      'Você é o organizador deste evento.',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
+                                    if (converterData(texto) == null) {
+                                      return 'Data inválida.';
+                                    }
+
+                                    return null;
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: _Field(
+                                  controller: horarioController,
+                                  label: 'Horário *',
+                                  hint: 'HH:mm',
+                                  keyboardType: TextInputType.number,
+                                  inputFormatters: [HoraInputFormatter()],
+                                  suffixIcon: IconButton(
+                                    icon: const Icon(Icons.access_time),
+                                    onPressed: selecionarHorario,
+                                  ),
+                                  validator: (value) {
+                                    final texto = value?.trim() ?? '';
+
+                                    if (texto.isEmpty) {
+                                      return 'Informe o horário.';
+                                    }
+
+                                    if (!RegExp(r'^\d{2}:\d{2}$')
+                                        .hasMatch(texto)) {
+                                      return 'Use HH:mm.';
+                                    }
+
+                                    if (converterHorario(texto) == null) {
+                                      return 'Horário inválido.';
+                                    }
+
+                                    return null;
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 18),
+                          _Field(
+                            controller: localController,
+                            label: 'Local *',
+                            hint: 'Ex: Praça Central',
+                            validator: (value) {
+                              final texto = value?.trim() ?? '';
+
+                              if (texto.isEmpty) {
+                                return 'Informe o local do evento.';
+                              }
+
+                              if (texto.length < 3) {
+                                return 'O local deve ter pelo menos 3 caracteres.';
+                              }
+
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 18),
+                          _Field(
+                            controller: bairroController,
+                            label: 'Bairro *',
+                            hint: 'Ex: Centro',
+                            validator: (value) {
+                              final texto = value?.trim() ?? '';
+
+                              if (texto.isEmpty) {
+                                return 'Informe o bairro.';
+                              }
+
+                              if (texto.length < 2) {
+                                return 'Informe um bairro válido.';
+                              }
+
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 18),
+                          _Field(
+                            controller: linkInscricaoController,
+                            label: 'Link de Inscrição',
+                            hint: 'https://...',
+                            keyboardType: TextInputType.url,
+                            validator: (value) {
+                              final texto = value?.trim() ?? '';
+
+                              if (texto.isEmpty) {
+                                return null;
+                              }
+
+                              if (!texto.startsWith('http://') &&
+                                  !texto.startsWith('https://')) {
+                                return 'O link deve começar com http:// ou https://.';
+                              }
+
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 18),
+                          _Field(
+                            controller: imagemUrlController,
+                            label: 'Imagem do Evento',
+                            hint: 'URL da imagem, opcional',
+                            keyboardType: TextInputType.url,
+                            validator: (value) {
+                              final texto = value?.trim() ?? '';
+
+                              if (texto.isEmpty) {
+                                return null;
+                              }
+
+                              if (!texto.startsWith('http://') &&
+                                  !texto.startsWith('https://')) {
+                                return 'A URL deve começar com http:// ou https://.';
+                              }
+
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 24),
+                          Divider(color: Colors.grey.shade300),
+                          const SizedBox(height: 18),
+                          _ToggleLine(
+                            title: 'Gratuito',
+                            subtitle: 'O evento não tem custo para o público',
+                            value: gratuito,
+                            onChanged: (value) {
+                              setState(() => gratuito = value);
+                            },
+                          ),
+                          const SizedBox(height: 22),
+                          _ToggleLine(
+                            title: 'Inscrições abertas',
+                            subtitle:
+                                'Clientes poderão se inscrever neste evento',
+                            value: inscricoesAbertas,
+                            onChanged: (value) {
+                              setState(() => inscricoesAbertas = value);
+                            },
+                          ),
+                          const SizedBox(height: 34),
+                          ElevatedButton(
+                            onPressed: carregando ? null : salvarEvento,
+                            child: Text(
+                              carregando ? 'Salvando...' : textoBotao,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  )
-                else if (!eventoAtual.inscricoesAbertas)
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: const Text(
-                      'As inscrições deste evento estão fechadas.',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  )
-                else
-                  ElevatedButton(
-                    onPressed:
-                        carregandoInscricao ? null : alternarInscricao,
-                    child: Text(
-                      carregandoInscricao
-                          ? 'Processando...'
-                          : usuarioInscrito
-                              ? 'Cancelar inscrição'
-                              : 'Inscrever-se',
-                    ),
                   ),
-
-                if (eventoAtual.linkInscricao.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    'Link externo de inscrição: ${eventoAtual.linkInscricao}',
-                    style: TextStyle(
-                      color: Colors.grey.shade700,
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
-              ],
-            ),
           ),
         ),
       ),
@@ -470,49 +592,167 @@ class _EventoDetalheScreenState extends State<EventoDetalheScreen> {
   }
 }
 
-/// Linha de informação usada na tela de detalhes.
-class _InfoLine extends StatelessWidget {
-  final IconData icon;
+/// Campo reutilizável do formulário.
+///
+/// Usa TextFormField para permitir validações integradas ao `Form`.
+class _Field extends StatelessWidget {
+  final TextEditingController controller;
   final String label;
-  final String value;
+  final String hint;
+  final int maxLines;
+  final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
+  final Widget? suffixIcon;
+  final String? Function(String?)? validator;
 
-  const _InfoLine({
-    required this.icon,
+  const _Field({
+    required this.controller,
     required this.label,
-    required this.value,
+    required this.hint,
+    this.maxLines = 1,
+    this.keyboardType,
+    this.inputFormatters,
+    this.suffixIcon,
+    this.validator,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Row(
-        children: [
-          Icon(icon, size: 22),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              '$label: $value',
-              style: const TextStyle(fontSize: 16),
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 6),
+        TextFormField(
+          controller: controller,
+          maxLines: maxLines,
+          keyboardType:
+              keyboardType ?? (maxLines > 1 ? TextInputType.multiline : null),
+          inputFormatters: inputFormatters,
+          validator: validator,
+          decoration: InputDecoration(
+            hintText: hint,
+            suffixIcon: suffixIcon,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
-/// Tag visual usada para destacar informações do evento.
-class _Tag extends StatelessWidget {
-  final String text;
+/// Formatador para data no padrão dd/mm/aaaa.
+///
+/// O usuário digita apenas números.
+/// Exemplo: 01062026 -> 01/06/2026.
+class DataInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    var texto = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
 
-  const _Tag({required this.text});
+    if (texto.length > 8) {
+      texto = texto.substring(0, 8);
+    }
+
+    final buffer = StringBuffer();
+
+    for (var i = 0; i < texto.length; i++) {
+      if (i == 2) buffer.write('/');
+      if (i == 4) buffer.write('/');
+
+      buffer.write(texto[i]);
+    }
+
+    final textoFormatado = buffer.toString();
+
+    return TextEditingValue(
+      text: textoFormatado,
+      selection: TextSelection.collapsed(offset: textoFormatado.length),
+    );
+  }
+}
+
+/// Formatador para horário no padrão HH:mm.
+///
+/// O usuário digita apenas números.
+/// Exemplo: 1830 -> 18:30.
+class HoraInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    var texto = newValue.text.replaceAll(RegExp(r'[^0-9]'), '');
+
+    if (texto.length > 4) {
+      texto = texto.substring(0, 4);
+    }
+
+    final buffer = StringBuffer();
+
+    for (var i = 0; i < texto.length; i++) {
+      if (i == 2) buffer.write(':');
+
+      buffer.write(texto[i]);
+    }
+
+    final textoFormatado = buffer.toString();
+
+    return TextEditingValue(
+      text: textoFormatado,
+      selection: TextSelection.collapsed(offset: textoFormatado.length),
+    );
+  }
+}
+
+/// Linha reutilizável com título, descrição e toggle customizado.
+class _ToggleLine extends StatelessWidget {
+  final String title;
+  final String subtitle;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  const _ToggleLine({
+    required this.title,
+    required this.subtitle,
+    required this.value,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Chip(
-      label: Text(text),
-      side: BorderSide(color: Colors.grey.shade300),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
+            ],
+          ),
+        ),
+        IosToggle(
+          value: value,
+          onChanged: onChanged,
+        ),
+      ],
     );
   }
 }

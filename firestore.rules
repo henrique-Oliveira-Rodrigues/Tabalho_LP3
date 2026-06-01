@@ -3,15 +3,22 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Regras da coleção de usuários.
+    // Cada usuário só pode ler/criar/alterar o próprio documento.
+    match /usuarios/{usuarioId} {
+      allow read: if request.auth != null && request.auth.uid == usuarioId;
+      allow create: if request.auth != null && request.auth.uid == usuarioId;
+      allow update: if request.auth != null && request.auth.uid == usuarioId;
+      allow delete: if false;
+    }
+
     // Regras da coleção de eventos.
     match /eventos/{eventoId} {
-
       // Qualquer pessoa pode visualizar/listar eventos.
-      // Isso permite que clientes vejam os eventos disponíveis.
       allow read: if true;
 
-      // Apenas usuários logados podem criar eventos.
-      // A regra também exige que o campo criadoPor seja o UID do usuário logado.
+      // Apenas usuários logados podem criar eventos, e o campo criadoPor
+      // precisa ser o UID do usuário autenticado.
       allow create: if request.auth != null
         && request.resource.data.criadoPor == request.auth.uid;
 
@@ -24,15 +31,36 @@ service cloud.firestore {
         && request.auth.uid == resource.data.criadoPor;
     }
 
+
+
+    // Regras da coleção de favoritos.
+    match /favoritos/{favoritoId} {
+      // Usuários logados podem consultar favoritos.
+      // O app filtra por usuarioId para exibir apenas os favoritos do usuário atual.
+      allow read: if request.auth != null;
+
+      // Usuário logado só pode criar favorito para a própria conta.
+      allow create: if request.auth != null
+        && request.resource.data.usuarioId == request.auth.uid
+        && request.resource.data.eventoId is string
+        && request.resource.data.usuarioId is string;
+
+      // Usuário só pode remover o próprio favorito.
+      allow delete: if request.auth != null
+        && resource.data.usuarioId == request.auth.uid;
+
+      // Favorito não deve ser editado.
+      // Se precisar mudar, o correto é excluir e criar novamente.
+      allow update: if false;
+    }
+
     // Regras da coleção de inscrições.
     match /inscricoes/{inscricaoId} {
-
       // Usuários logados podem consultar inscrições.
       // Isso é necessário para o app verificar se o cliente já está inscrito.
       allow read: if request.auth != null;
 
       // Usuário logado só pode criar inscrição para ele mesmo.
-      // Ou seja, usuarioId precisa ser igual ao UID autenticado.
       allow create: if request.auth != null
         && request.resource.data.usuarioId == request.auth.uid
         && request.resource.data.eventoId is string
@@ -43,7 +71,6 @@ service cloud.firestore {
         && resource.data.usuarioId == request.auth.uid;
 
       // Inscrição não deve ser editada.
-      // Se precisar mudar, o correto é excluir e criar novamente.
       allow update: if false;
     }
   }
